@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2007 by Benedikt Sauter                                 *
@@ -148,7 +148,7 @@ static int usbprog_init(void)
 	usbprog_jtag_handle = usbprog_jtag_open();
 
 	tms_chain_index = 0;
-	if (usbprog_jtag_handle == 0) {
+	if (!usbprog_jtag_handle) {
 		LOG_ERROR("Can't find USB JTAG Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -334,8 +334,6 @@ static void usbprog_reset(int trst, int srst)
 }
 
 /*************** jtag lowlevel functions ********************/
-
-struct usb_bus *busses;
 
 struct usbprog_jtag *usbprog_jtag_open(void)
 {

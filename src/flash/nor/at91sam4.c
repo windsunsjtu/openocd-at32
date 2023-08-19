@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-Source-Code) */
+// SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-Source-Code)
 
 /*
  * Copyright (C) 2009 by Duane Ellis <openocd@duaneellis.com>
@@ -61,8 +61,6 @@
 #define  OFFSET_EFC_FCR   4
 #define  OFFSET_EFC_FSR   8
 #define  OFFSET_EFC_FRR   12
-
-extern const struct flash_driver at91sam4_flash;
 
 static float _tomhz(uint32_t freq_hz)
 {

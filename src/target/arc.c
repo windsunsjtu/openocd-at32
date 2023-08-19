@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2013-2015,2019-2020 Synopsys, Inc.                      *
@@ -93,7 +93,7 @@ struct reg *arc_reg_get_by_name(struct reg_cache *first,
  *
  * @param target Target for which to reset caches states.
  */
-int arc_reset_caches_states(struct target *target)
+static int arc_reset_caches_states(struct target *target)
 {
 	struct arc_common *arc = target_to_arc(target);
 
@@ -283,7 +283,7 @@ static int arc_set_register(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-const struct reg_arch_type arc_reg_type = {
+static const struct reg_arch_type arc_reg_type = {
 	.get = arc_get_register,
 	.set = arc_set_register,
 };
@@ -846,21 +846,17 @@ static int arc_save_context(struct target *target)
 	memset(aux_addrs, 0xff, aux_regs_size);
 
 	for (i = 0; i < MIN(arc->num_core_regs, regs_to_scan); i++) {
-		struct reg *reg = &(reg_list[i]);
+		struct reg *reg = reg_list + i;
 		struct arc_reg_desc *arc_reg = reg->arch_info;
-		if (!reg->valid && reg->exist) {
-			core_addrs[core_cnt] = arc_reg->arch_num;
-			core_cnt += 1;
-		}
+		if (!reg->valid && reg->exist)
+			core_addrs[core_cnt++] = arc_reg->arch_num;
 	}
 
 	for (i = arc->num_core_regs; i < regs_to_scan; i++) {
-		struct reg *reg = &(reg_list[i]);
+		struct reg *reg = reg_list + i;
 		struct arc_reg_desc *arc_reg = reg->arch_info;
-		if (!reg->valid && reg->exist) {
-			aux_addrs[aux_cnt] = arc_reg->arch_num;
-			aux_cnt += 1;
-		}
+		if (!reg->valid && reg->exist)
+			aux_addrs[aux_cnt++] = arc_reg->arch_num;
 	}
 
 	/* Read data from target. */
@@ -884,30 +880,30 @@ static int arc_save_context(struct target *target)
 	/* Parse core regs */
 	core_cnt = 0;
 	for (i = 0; i < MIN(arc->num_core_regs, regs_to_scan); i++) {
-		struct reg *reg = &(reg_list[i]);
+		struct reg *reg = reg_list + i;
 		struct arc_reg_desc *arc_reg = reg->arch_info;
 		if (!reg->valid && reg->exist) {
 			target_buffer_set_u32(target, reg->value, core_values[core_cnt]);
-			core_cnt += 1;
 			reg->valid = true;
 			reg->dirty = false;
 			LOG_DEBUG("Get core register regnum=%u, name=%s, value=0x%08" PRIx32,
 				i, arc_reg->name, core_values[core_cnt]);
+			core_cnt++;
 		}
 	}
 
 	/* Parse aux regs */
 	aux_cnt = 0;
 	for (i = arc->num_core_regs; i < regs_to_scan; i++) {
-		struct reg *reg = &(reg_list[i]);
+		struct reg *reg = reg_list + i;
 		struct arc_reg_desc *arc_reg = reg->arch_info;
 		if (!reg->valid && reg->exist) {
 			target_buffer_set_u32(target, reg->value, aux_values[aux_cnt]);
-			aux_cnt += 1;
 			reg->valid = true;
 			reg->dirty = false;
 			LOG_DEBUG("Get aux register regnum=%u, name=%s, value=0x%08" PRIx32,
 				i, arc_reg->name, aux_values[aux_cnt]);
+			aux_cnt++;
 		}
 	}
 
@@ -1262,7 +1258,7 @@ static int arc_resume(struct target *target, int current, target_addr_t address,
 	CHECK_RETVAL(arc_reset_caches_states(target));
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1401,7 +1397,7 @@ static int arc_target_create(struct target *target, Jim_Interp *interp)
  * little endian, so different type of conversion should be done.
  * Middle endian: instruction "aabbccdd", stored as "bbaaddcc"
  */
-int arc_write_instruction_u32(struct target *target, uint32_t address,
+static int arc_write_instruction_u32(struct target *target, uint32_t address,
 	uint32_t instr)
 {
 	uint8_t value_buf[4];
@@ -1428,7 +1424,7 @@ int arc_write_instruction_u32(struct target *target, uint32_t address,
  * case of little endian ARC instructions are in middle endian format, so
  * different type of conversion should be done.
  */
-int arc_read_instruction_u32(struct target *target, uint32_t address,
+static int arc_read_instruction_u32(struct target *target, uint32_t address,
 		uint32_t *value)
 {
 	uint8_t value_buf[4];
@@ -1675,7 +1671,7 @@ static int arc_add_breakpoint(struct target *target, struct breakpoint *breakpoi
 		return arc_set_breakpoint(target, breakpoint);
 
 	} else {
-		LOG_WARNING(" > core was not halted, please try again.");
+		LOG_TARGET_ERROR(target, "not halted (add breakpoint)");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 }
@@ -1687,14 +1683,14 @@ static int arc_remove_breakpoint(struct target *target,
 		if (breakpoint->is_set)
 			CHECK_RETVAL(arc_unset_breakpoint(target, breakpoint));
 	} else {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted (remove breakpoint)");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	return ERROR_OK;
 }
 
-void arc_reset_actionpoints(struct target *target)
+static void arc_reset_actionpoints(struct target *target)
 {
 	struct arc_common *arc = target_to_arc(target);
 	struct arc_actionpoint *ap_list = arc->actionpoints_list;
@@ -1909,7 +1905,7 @@ static int arc_add_watchpoint(struct target *target,
 	struct watchpoint *watchpoint)
 {
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1922,7 +1918,7 @@ static int arc_remove_watchpoint(struct target *target,
 	struct watchpoint *watchpoint)
 {
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1965,7 +1961,7 @@ static int arc_hit_watchpoint(struct target *target, struct watchpoint **hit_wat
 
 /* Helper function which switches core to single_step mode by
  * doing aux r/w operations.  */
-int arc_config_step(struct target *target, int enable_step)
+static int arc_config_step(struct target *target, int enable_step)
 {
 	uint32_t value;
 
@@ -2001,7 +1997,7 @@ int arc_config_step(struct target *target, int enable_step)
 	return ERROR_OK;
 }
 
-int arc_step(struct target *target, int current, target_addr_t address,
+static int arc_step(struct target *target, int current, target_addr_t address,
 	int handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
@@ -2010,7 +2006,7 @@ int arc_step(struct target *target, int current, target_addr_t address,
 	struct reg *pc = &(arc->core_and_aux_cache->reg_list[arc->pc_index_in_cache]);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2165,7 +2161,7 @@ int arc_cache_invalidate(struct target *target)
  * values directly from memory, bypassing cache, so if there are unflushed
  * lines debugger will read invalid values, which will cause a lot of troubles.
  * */
-int arc_dcache_flush(struct target *target)
+static int arc_dcache_flush(struct target *target)
 {
 	uint32_t value, dc_ctrl_value;
 	bool has_to_set_dc_ctrl_im;

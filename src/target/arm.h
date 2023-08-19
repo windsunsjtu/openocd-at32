@@ -155,7 +155,7 @@ enum arm_vfp_version {
 	ARM_VFP_V3,
 };
 
-#define ARM_COMMON_MAGIC 0x0A450A45
+#define ARM_COMMON_MAGIC 0x0A450A45U
 
 /**
  * Represents a generic ARM core, with standard application registers.
@@ -165,7 +165,8 @@ enum arm_vfp_version {
  * registers as traditional ARM cores, and only support Thumb2 instructions.
  */
 struct arm {
-	int common_magic;
+	unsigned int common_magic;
+
 	struct reg_cache *core_cache;
 
 	/** Handle to the PC; valid in all core modes. */
@@ -252,7 +253,7 @@ static inline bool is_arm(struct arm *arm)
 }
 
 struct arm_algorithm {
-	int common_magic;
+	unsigned int common_magic;
 
 	enum arm_mode core_mode;
 	enum arm_state core_state;
@@ -272,6 +273,7 @@ void arm_free_reg_cache(struct arm *arm);
 struct reg_cache *armv8_build_reg_cache(struct target *target);
 
 extern const struct command_registration arm_command_handlers[];
+extern const struct command_registration arm_all_profiles_command_handlers[];
 
 int arm_arch_state(struct target *target);
 const char *arm_get_gdb_arch(struct target *target);
@@ -290,14 +292,14 @@ int armv4_5_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		target_addr_t entry_point, target_addr_t exit_point,
-		int timeout_ms, void *arch_info);
+		unsigned int timeout_ms, void *arch_info);
 int armv4_5_run_algorithm_inner(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
-		int timeout_ms, void *arch_info,
+		unsigned int timeout_ms, void *arch_info,
 		int (*run_it)(struct target *target, uint32_t exit_point,
-				int timeout_ms, void *arch_info));
+				unsigned int timeout_ms, void *arch_info));
 
 int arm_checksum_memory(struct target *target,
 		target_addr_t address, uint32_t count, uint32_t *checksum);
@@ -307,8 +309,5 @@ int arm_blank_check_memory(struct target *target,
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
 struct reg *armv8_reg_current(struct arm *arm, unsigned regnum);
-
-extern struct reg arm_gdb_dummy_fp_reg;
-extern struct reg arm_gdb_dummy_fps_reg;
 
 #endif /* OPENOCD_TARGET_ARM_H */

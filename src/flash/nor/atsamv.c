@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-Source-Code) */
+// SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-Source-Code)
 
 /*
  * Copyright (C) 2009 by Duane Ellis <openocd@duaneellis.com>
@@ -52,8 +52,6 @@
 #define SAMV_SECTOR_SIZE             16384
 #define SAMV_PAGE_SIZE                 512
 #define SAMV_FLASH_BASE         0x00400000
-
-extern const struct flash_driver atsamv_flash;
 
 struct samv_flash_bank {
 	bool      probed;

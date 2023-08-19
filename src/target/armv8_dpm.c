@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /*
  * Copyright (C) 2009 by David Brownell
@@ -274,7 +274,7 @@ static int dpmv8_instr_write_data_dcc(struct arm_dpm *dpm,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dpmv8_exec_opcode(dpm, opcode, 0);
+	return dpmv8_exec_opcode(dpm, opcode, NULL);
 }
 
 static int dpmv8_instr_write_data_dcc_64(struct arm_dpm *dpm,
@@ -287,7 +287,7 @@ static int dpmv8_instr_write_data_dcc_64(struct arm_dpm *dpm,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dpmv8_exec_opcode(dpm, opcode, 0);
+	return dpmv8_exec_opcode(dpm, opcode, NULL);
 }
 
 static int dpmv8_instr_write_data_r0(struct arm_dpm *dpm,
@@ -587,6 +587,9 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 	}
 
 	LOG_DEBUG("target_el = %i, last_el = %i", target_el, dpm->last_el);
+	if (dpm->last_el == target_el)
+		return ERROR_OK; /* nothing to do */
+
 	if (target_el > dpm->last_el) {
 		retval = dpm->instr_execute(dpm,
 				armv8_opcode(armv8, ARMV8_OPC_DCPS) | target_el);
@@ -601,7 +604,7 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 				/* load SPSR with the desired mode and execute DRPS */
 				LOG_DEBUG("SPSR = 0x%08"PRIx32, cpsr);
 				retval = dpm->instr_write_data_r0(dpm,
-						ARMV8_MSR_GP_xPSR_T1(1, 0, 15), cpsr);
+						ARMV8_MSR_GP_XPSR_T1(1, 0, 15), cpsr);
 				if (retval == ERROR_OK)
 					retval = dpm->instr_execute(dpm, armv8_opcode(armv8, ARMV8_OPC_DRPS));
 			}
@@ -917,7 +920,7 @@ int armv8_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 		if (!cache->reg_list[i].exist)
 			continue;
 		/* skip PC and CPSR */
-		if (i == ARMV8_PC || i == ARMV8_xPSR)
+		if (i == ARMV8_PC || i == ARMV8_XPSR)
 			continue;
 		/* skip invalid */
 		if (!cache->reg_list[i].valid)
@@ -939,7 +942,7 @@ int armv8_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 
 	/* flush CPSR and PC */
 	if (retval == ERROR_OK)
-		retval = dpmv8_write_reg(dpm, &cache->reg_list[ARMV8_xPSR], ARMV8_xPSR);
+		retval = dpmv8_write_reg(dpm, &cache->reg_list[ARMV8_XPSR], ARMV8_XPSR);
 	if (retval == ERROR_OK)
 		retval = dpmv8_write_reg(dpm, &cache->reg_list[ARMV8_PC], ARMV8_PC);
 	/* flush R0 -- it's *very* dirty by now */
@@ -1207,7 +1210,7 @@ static int dpmv8_watchpoint_setup(struct arm_dpm *dpm, unsigned index_t,
 	uint32_t control;
 
 	/* this hardware doesn't support data value matching or masking */
-	if (wp->value || wp->mask != ~(uint32_t)0) {
+	if (wp->mask != WATCHPOINT_IGNORE_DATA_VALUE_MASK) {
 		LOG_DEBUG("watchpoint values and masking not supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
@@ -1293,9 +1296,9 @@ void armv8_dpm_handle_exception(struct arm_dpm *dpm, bool do_restore)
 	unsigned int el;
 
 	static const int clobbered_regs_by_el[3][5] = {
-		{ ARMV8_PC, ARMV8_xPSR, ARMV8_ELR_EL1, ARMV8_ESR_EL1, ARMV8_SPSR_EL1 },
-		{ ARMV8_PC, ARMV8_xPSR, ARMV8_ELR_EL2, ARMV8_ESR_EL2, ARMV8_SPSR_EL2 },
-		{ ARMV8_PC, ARMV8_xPSR, ARMV8_ELR_EL3, ARMV8_ESR_EL3, ARMV8_SPSR_EL3 },
+		{ ARMV8_PC, ARMV8_XPSR, ARMV8_ELR_EL1, ARMV8_ESR_EL1, ARMV8_SPSR_EL1 },
+		{ ARMV8_PC, ARMV8_XPSR, ARMV8_ELR_EL2, ARMV8_ESR_EL2, ARMV8_SPSR_EL2 },
+		{ ARMV8_PC, ARMV8_XPSR, ARMV8_ELR_EL3, ARMV8_ESR_EL3, ARMV8_SPSR_EL3 },
 	};
 
 	el = (dpm->dscr >> 8) & 3;
@@ -1310,7 +1313,7 @@ void armv8_dpm_handle_exception(struct arm_dpm *dpm, bool do_restore)
 	mem_ap_write_u32(armv8->debug_ap,
 		armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 
-	armv8->read_reg_u64(armv8, ARMV8_xPSR, &dlr);
+	armv8->read_reg_u64(armv8, ARMV8_XPSR, &dlr);
 	dspsr = dlr;
 	armv8->read_reg_u64(armv8, ARMV8_PC, &dlr);
 

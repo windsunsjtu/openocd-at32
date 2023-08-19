@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -392,8 +392,8 @@ struct breakpoint *breakpoint_find(struct target *target, target_addr_t address)
 	return NULL;
 }
 
-int watchpoint_add_internal(struct target *target, target_addr_t address,
-		uint32_t length, enum watchpoint_rw rw, uint32_t value, uint32_t mask)
+static int watchpoint_add_internal(struct target *target, target_addr_t address,
+		uint32_t length, enum watchpoint_rw rw, uint64_t value, uint64_t mask)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
@@ -460,7 +460,7 @@ bye:
 }
 
 int watchpoint_add(struct target *target, target_addr_t address,
-		uint32_t length, enum watchpoint_rw rw, uint32_t value, uint32_t mask)
+		uint32_t length, enum watchpoint_rw rw, uint64_t value, uint64_t mask)
 {
 	if (target->smp) {
 		struct target_list *head;
@@ -500,7 +500,7 @@ static void watchpoint_free(struct target *target, struct watchpoint *watchpoint
 	free(watchpoint);
 }
 
-int watchpoint_remove_internal(struct target *target, target_addr_t address)
+static int watchpoint_remove_internal(struct target *target, target_addr_t address)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 

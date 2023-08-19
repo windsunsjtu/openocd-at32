@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -57,7 +57,7 @@ static const struct arm9tdmi_vector {
 	{"dabt", ARM9TDMI_DABT_VECTOR},
 	{"irq", ARM9TDMI_IRQ_VECTOR},
 	{"fiq", ARM9TDMI_FIQ_VECTOR},
-	{0, 0},
+	{NULL, 0},
 };
 
 int arm9tdmi_examine_debug_reason(struct target *target)

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -230,11 +230,11 @@ static int stm32x_otp_enable(struct flash_bank *bank)
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 
 	if (!stm32x_info->otp_unlocked) {
-		LOG_INFO("OTP memory bank #%u is is enabled for write commands.",
+		LOG_INFO("OTP memory bank #%u is enabled for write commands.",
 			 bank->bank_number);
 		stm32x_info->otp_unlocked = true;
 	} else {
-		LOG_WARNING("OTP memory bank #%u is is already enabled for write commands.",
+		LOG_WARNING("OTP memory bank #%u is already enabled for write commands.",
 			    bank->bank_number);
 	}
 	return ERROR_OK;
@@ -659,8 +659,10 @@ static int stm32x_protect(struct flash_bank *bank, int set, unsigned int first,
 	}
 
 	if (stm32x_is_otp(bank)) {
-		if (!set)
+		if (!set) {
+			LOG_ERROR("OTP protection can only be enabled");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
 
 		return stm32x_otp_protect(bank, first, last);
 	}
@@ -1125,7 +1127,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		flash_size_in_kb = stm32x_info->user_bank_size / 1024;
 	}
 
-	LOG_INFO("flash size = %" PRIu16 " kbytes", flash_size_in_kb);
+	LOG_INFO("flash size = %" PRIu16 " KiB", flash_size_in_kb);
 
 	/* did we assign flash size? */
 	assert(flash_size_in_kb != 0xffff);

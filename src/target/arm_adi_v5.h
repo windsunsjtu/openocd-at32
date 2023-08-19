@@ -359,6 +359,10 @@ struct adiv5_dap {
 	 * swizzle appropriately. */
 	bool ti_be_32_quirks;
 
+	/* The Nuvoton NPCX M4 has an issue with writing to non-4-byte-aligned mmios.
+	 * The work around is to repeat the data in all 4 bytes of DRW */
+	bool nu_npcx_quirks;
+
 	/**
 	 * STLINK adapter need to know if last AP operation was read or write, and
 	 * in case of write has to flush it with a dummy read from DP_RDBUFF
@@ -450,6 +454,9 @@ enum ap_type {
 	AP_TYPE_AXI5_AP  = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 7),  /* AXI5 Memory-AP */
 	AP_TYPE_AHB5H_AP = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 8),  /* AHB5 with enhanced HPROT Memory-AP */
 };
+
+extern const struct dap_ops jtag_dp_ops;
+extern const struct dap_ops swd_dap_ops;
 
 /* Check the ap->cfg_reg Long Address field (bit 1)
  *

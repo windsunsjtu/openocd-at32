@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -117,7 +117,7 @@ static void gdb_sig_halted(struct connection *connection);
 
 /* number of gdb connections, mainly to suppress gdb related debugging spam
  * in helper/log.c when no gdb connections are actually active */
-int gdb_actual_connections;
+static int gdb_actual_connections;
 
 /* set if we are sending a memory map to gdb
  * via qXfer:memory-map:read packet */
@@ -145,6 +145,9 @@ static char gdb_running_type;
 
 static int gdb_last_signal(struct target *target)
 {
+	LOG_TARGET_DEBUG(target, "Debug reason is: %s",
+			target_debug_reason_str(target->debug_reason));
+
 	switch (target->debug_reason) {
 		case DBG_REASON_DBGRQ:
 			return 0x2;		/* SIGINT */
@@ -159,8 +162,9 @@ static int gdb_last_signal(struct target *target)
 		case DBG_REASON_NOTHALTED:
 			return 0x0;		/* no signal... shouldn't happen */
 		default:
-			LOG_USER("undefined debug reason %d - target needs reset",
-					target->debug_reason);
+			LOG_USER("undefined debug reason %d (%s) - target needs reset",
+					target->debug_reason,
+					target_debug_reason_str(target->debug_reason));
 			return 0x0;
 	}
 }
@@ -231,39 +235,20 @@ static int gdb_get_char_inner(struct connection *connection, int *next_char)
 		}
 
 #ifdef _WIN32
-		errno = WSAGetLastError();
-
-		switch (errno) {
-			case WSAEWOULDBLOCK:
-				usleep(1000);
-				break;
-			case WSAECONNABORTED:
-				gdb_con->closed = true;
-				return ERROR_SERVER_REMOTE_CLOSED;
-			case WSAECONNRESET:
-				gdb_con->closed = true;
-				return ERROR_SERVER_REMOTE_CLOSED;
-			default:
-				LOG_ERROR("read: %d", errno);
-				exit(-1);
-		}
+		bool retry = (WSAGetLastError() == WSAEWOULDBLOCK);
 #else
-		switch (errno) {
-			case EAGAIN:
-				usleep(1000);
-				break;
-			case ECONNABORTED:
-				gdb_con->closed = true;
-				return ERROR_SERVER_REMOTE_CLOSED;
-			case ECONNRESET:
-				gdb_con->closed = true;
-				return ERROR_SERVER_REMOTE_CLOSED;
-			default:
-				LOG_ERROR("read: %s", strerror(errno));
-				gdb_con->closed = true;
-				return ERROR_SERVER_REMOTE_CLOSED;
-		}
+		bool retry = (errno == EAGAIN);
 #endif
+
+		if (retry) {
+			// Try again after a delay
+			usleep(1000);
+		} else {
+			// Print error and close the socket
+			log_socket_error("GDB");
+			gdb_con->closed = true;
+			return ERROR_SERVER_REMOTE_CLOSED;
+		}
 	}
 
 #ifdef _DEBUG_GDB_IO_
@@ -798,6 +783,7 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		}
 
 		if (gdb_connection->ctrl_c) {
+			LOG_TARGET_DEBUG(target, "Responding with signal 2 (SIGINT) to debugger due to Ctrl-C");
 			signal_var = 0x2;
 		} else
 			signal_var = gdb_last_signal(ct);
@@ -1323,6 +1309,8 @@ static int gdb_set_registers_packet(struct connection *connection,
 	packet_p = packet;
 	for (i = 0; i < reg_list_size; i++) {
 		uint8_t *bin_buf;
+		if (!reg_list[i] || !reg_list[i]->exist || reg_list[i]->hidden)
+			continue;
 		int chars = (DIV_ROUND_UP(reg_list[i]->size, 8) * 2);
 
 		if (packet_p + chars > packet + packet_size)
@@ -1375,7 +1363,8 @@ static int gdb_get_register_packet(struct connection *connection,
 	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
 
-	if (reg_list_size <= reg_num) {
+	if ((reg_list_size <= reg_num) || !reg_list[reg_num] ||
+		!reg_list[reg_num]->exist || reg_list[reg_num]->hidden) {
 		LOG_ERROR("gdb requested a non-existing register (reg_num=%d)", reg_num);
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
@@ -1437,7 +1426,8 @@ static int gdb_set_register_packet(struct connection *connection,
 		return gdb_error(connection, retval);
 	}
 
-	if (reg_list_size <= reg_num) {
+	if ((reg_list_size <= reg_num) || !reg_list[reg_num] ||
+		!reg_list[reg_num]->exist || reg_list[reg_num]->hidden) {
 		LOG_ERROR("gdb requested a non-existing register (reg_num=%d)", reg_num);
 		free(bin_buf);
 		free(reg_list);
@@ -1770,7 +1760,10 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 		case 1:
 			if (packet[0] == 'Z') {
 				retval = breakpoint_add(target, address, size, bp_type);
-				if (retval != ERROR_OK) {
+				if (retval == ERROR_NOT_IMPLEMENTED) {
+					/* Send empty reply to report that breakpoints of this type are not supported */
+					gdb_put_packet(connection, "", 0);
+				} else if (retval != ERROR_OK) {
 					retval = gdb_error(connection, retval);
 					if (retval != ERROR_OK)
 						return retval;
@@ -1786,8 +1779,11 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 		case 4:
 		{
 			if (packet[0] == 'Z') {
-				retval = watchpoint_add(target, address, size, wp_type, 0, 0xffffffffu);
-				if (retval != ERROR_OK) {
+				retval = watchpoint_add(target, address, size, wp_type, 0, WATCHPOINT_IGNORE_DATA_VALUE_MASK);
+				if (retval == ERROR_NOT_IMPLEMENTED) {
+					/* Send empty reply to report that watchpoints of this type are not supported */
+					gdb_put_packet(connection, "", 0);
+				} else if (retval != ERROR_OK) {
 					retval = gdb_error(connection, retval);
 					if (retval != ERROR_OK)
 						return retval;
@@ -2338,6 +2334,7 @@ static int smp_reg_list_noread(struct target *target,
 						local_list = realloc(local_list, combined_allocated * sizeof(struct reg *));
 						if (!local_list) {
 							LOG_ERROR("realloc(%zu) failed", combined_allocated * sizeof(struct reg *));
+							free(reg_list);
 							return ERROR_FAIL;
 						}
 					}
@@ -2955,13 +2952,19 @@ static int gdb_query_packet(struct connection *connection,
 		gdb_connection->noack_mode = 1;
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
+	} else if (target->type->gdb_query_custom) {
+		char *buffer = NULL;
+		int ret = target->type->gdb_query_custom(target, packet, &buffer);
+		gdb_put_packet(connection, buffer, strlen(buffer));
+		return ret;
 	}
 
 	gdb_put_packet(connection, "", 0);
 	return ERROR_OK;
 }
 
-static bool gdb_handle_vcont_packet(struct connection *connection, const char *packet, int packet_size)
+static bool gdb_handle_vcont_packet(struct connection *connection, const char *packet,
+	__attribute__((unused)) int packet_size)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
 	struct target *target = get_target_from_connection(connection);
@@ -2980,7 +2983,6 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 	if (parse[0] == ';') {
 		++parse;
-		--packet_size;
 	}
 
 	/* simple case, a continue packet */
@@ -3015,128 +3017,123 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 		gdb_running_type = 's';
 		bool fake_step = false;
 
-		if (strncmp(parse, "s:", 2) == 0) {
-			struct target *ct = target;
-			int current_pc = 1;
-			int64_t thread_id;
+		struct target *ct = target;
+		int current_pc = 1;
+		int64_t thread_id;
+		parse++;
+		if (parse[0] == ':') {
 			char *endp;
-
-			parse += 2;
-			packet_size -= 2;
-
+			parse++;
 			thread_id = strtoll(parse, &endp, 16);
 			if (endp) {
-				packet_size -= endp - parse;
 				parse = endp;
 			}
+		} else {
+			thread_id = 0;
+		}
 
-			if (target->rtos) {
-				/* FIXME: why is this necessary? rtos state should be up-to-date here already! */
-				rtos_update_threads(target);
+		if (target->rtos) {
+			/* FIXME: why is this necessary? rtos state should be up-to-date here already! */
+			rtos_update_threads(target);
 
-				target->rtos->gdb_target_for_threadid(connection, thread_id, &ct);
+			target->rtos->gdb_target_for_threadid(connection, thread_id, &ct);
 
-				/*
-				 * check if the thread to be stepped is the current rtos thread
-				 * if not, we must fake the step
-				 */
-				if (target->rtos->current_thread != thread_id)
-					fake_step = true;
-			}
+			/*
+			 * check if the thread to be stepped is the current rtos thread
+			 * if not, we must fake the step
+			 */
+			if (target->rtos->current_thread != thread_id)
+				fake_step = true;
+		}
 
-			if (parse[0] == ';') {
-				++parse;
-				--packet_size;
+		if (parse[0] == ';') {
+			++parse;
 
-				if (parse[0] == 'c') {
+			if (parse[0] == 'c') {
+				parse += 1;
+
+				/* check if thread-id follows */
+				if (parse[0] == ':') {
+					int64_t tid;
 					parse += 1;
 
-					/* check if thread-id follows */
-					if (parse[0] == ':') {
-						int64_t tid;
-						parse += 1;
-
-						tid = strtoll(parse, &endp, 16);
-						if (tid == thread_id) {
-							/*
-							 * Special case: only step a single thread (core),
-							 * keep the other threads halted. Currently, only
-							 * aarch64 target understands it. Other target types don't
-							 * care (nobody checks the actual value of 'current')
-							 * and it doesn't really matter. This deserves
-							 * a symbolic constant and a formal interface documentation
-							 * at a later time.
-							 */
-							LOG_DEBUG("request to step current core only");
-							/* uncomment after checking that indeed other targets are safe */
-							/*current_pc = 2;*/
-						}
+					tid = strtoll(parse, NULL, 16);
+					if (tid == thread_id) {
+						/*
+						 * Special case: only step a single thread (core),
+						 * keep the other threads halted. Currently, only
+						 * aarch64 target understands it. Other target types don't
+						 * care (nobody checks the actual value of 'current')
+						 * and it doesn't really matter. This deserves
+						 * a symbolic constant and a formal interface documentation
+						 * at a later time.
+						 */
+						LOG_DEBUG("request to step current core only");
+						/* uncomment after checking that indeed other targets are safe */
+						/*current_pc = 2;*/
 					}
 				}
 			}
+		}
 
-			LOG_DEBUG("target %s single-step thread %"PRIx64, target_name(ct), thread_id);
-			gdb_connection->output_flag = GDB_OUTPUT_ALL;
-			target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
+		LOG_DEBUG("target %s single-step thread %"PRIx64, target_name(ct), thread_id);
+		gdb_connection->output_flag = GDB_OUTPUT_ALL;
+		target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
 
-			/*
-			 * work around an annoying gdb behaviour: when the current thread
-			 * is changed in gdb, it assumes that the target can follow and also
-			 * make the thread current. This is an assumption that cannot hold
-			 * for a real target running a multi-threading OS. We just fake
-			 * the step to not trigger an internal error in gdb. See
-			 * https://sourceware.org/bugzilla/show_bug.cgi?id=22925 for details
-			 */
-			if (fake_step) {
-				int sig_reply_len;
-				char sig_reply[128];
+		/*
+		 * work around an annoying gdb behaviour: when the current thread
+		 * is changed in gdb, it assumes that the target can follow and also
+		 * make the thread current. This is an assumption that cannot hold
+		 * for a real target running a multi-threading OS. We just fake
+		 * the step to not trigger an internal error in gdb. See
+		 * https://sourceware.org/bugzilla/show_bug.cgi?id=22925 for details
+		 */
+		if (fake_step) {
+			int sig_reply_len;
+			char sig_reply[128];
 
-				LOG_DEBUG("fake step thread %"PRIx64, thread_id);
+			LOG_DEBUG("fake step thread %"PRIx64, thread_id);
 
-				sig_reply_len = snprintf(sig_reply, sizeof(sig_reply),
-										 "T05thread:%016"PRIx64";", thread_id);
+			sig_reply_len = snprintf(sig_reply, sizeof(sig_reply),
+									"T05thread:%016"PRIx64";", thread_id);
 
-				gdb_put_packet(connection, sig_reply, sig_reply_len);
-				gdb_connection->output_flag = GDB_OUTPUT_NO;
+			gdb_put_packet(connection, sig_reply, sig_reply_len);
+			gdb_connection->output_flag = GDB_OUTPUT_NO;
 
-				return true;
-			}
+			return true;
+		}
 
-			/* support for gdb_sync command */
-			if (gdb_connection->sync) {
-				gdb_connection->sync = false;
-				if (ct->state == TARGET_HALTED) {
-					LOG_DEBUG("stepi ignored. GDB will now fetch the register state "
-									"from the target.");
-					gdb_sig_halted(connection);
-					gdb_connection->output_flag = GDB_OUTPUT_NO;
-				} else
-					gdb_connection->frontend_state = TARGET_RUNNING;
-				return true;
-			}
-
-			retval = target_step(ct, current_pc, 0, 0);
-			if (retval == ERROR_TARGET_NOT_HALTED)
-				LOG_INFO("target %s was not halted when step was requested", target_name(ct));
-
-			/* if step was successful send a reply back to gdb */
-			if (retval == ERROR_OK) {
-				retval = target_poll(ct);
-				if (retval != ERROR_OK)
-					LOG_DEBUG("error polling target %s after successful step", target_name(ct));
-				/* send back signal information */
-				gdb_signal_reply(ct, connection);
-				/* stop forwarding log packets! */
+		/* support for gdb_sync command */
+		if (gdb_connection->sync) {
+			gdb_connection->sync = false;
+			if (ct->state == TARGET_HALTED) {
+				LOG_DEBUG("stepi ignored. GDB will now fetch the register state "
+								"from the target.");
+				gdb_sig_halted(connection);
 				gdb_connection->output_flag = GDB_OUTPUT_NO;
 			} else
 				gdb_connection->frontend_state = TARGET_RUNNING;
-		} else {
-			LOG_ERROR("Unknown vCont packet");
-			return false;
+			return true;
 		}
+
+		retval = target_step(ct, current_pc, 0, 0);
+		if (retval == ERROR_TARGET_NOT_HALTED)
+			LOG_INFO("target %s was not halted when step was requested", target_name(ct));
+
+		/* if step was successful send a reply back to gdb */
+		if (retval == ERROR_OK) {
+			retval = target_poll(ct);
+			if (retval != ERROR_OK)
+				LOG_DEBUG("error polling target %s after successful step", target_name(ct));
+			/* send back signal information */
+			gdb_signal_reply(ct, connection);
+			/* stop forwarding log packets! */
+			gdb_connection->output_flag = GDB_OUTPUT_NO;
+		} else
+			gdb_connection->frontend_state = TARGET_RUNNING;
 		return true;
 	}
-
+	LOG_ERROR("Unknown vCont packet");
 	return false;
 }
 
@@ -4093,4 +4090,9 @@ void gdb_service_free(void)
 {
 	free(gdb_port);
 	free(gdb_port_next);
+}
+
+int gdb_get_actual_connections(void)
+{
+	return gdb_actual_connections;
 }

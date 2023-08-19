@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -1706,7 +1706,7 @@ COMMAND_HANDLER(handle_etm_dump_command)
 		return ERROR_FAIL;
 	}
 
-	if (etm_ctx->capture_driver->status == TRACE_IDLE) {
+	if (etm_ctx->capture_driver->status(etm_ctx) == TRACE_IDLE) {
 		command_print(CMD, "trace capture wasn't enabled, no trace data captured");
 		return ERROR_OK;
 	}

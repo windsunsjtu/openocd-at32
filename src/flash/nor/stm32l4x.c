@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2015 by Uwe Bonnes                                      *
@@ -78,6 +78,12 @@
  *
  * RM0453 (STM32WL5x)
  * http://www.st.com/resource/en/reference_manual/dm00451556.pdf
+ */
+
+/* STM32C0xxx series for reference.
+ *
+ * RM0490 (STM32C0x1)
+ * http://www.st.com/resource/en/reference_manual/dm00781702.pdf
  */
 
 /* STM32G0xxx series for reference.
@@ -263,7 +269,7 @@ struct stm32l4_wrp {
 };
 
 /* human readable list of families this drivers supports (sorted alphabetically) */
-static const char *device_families = "STM32G0/G4/L4/L4+/L5/U5/WB/WL";
+static const char *device_families = "STM32C0/G0/G4/L4/L4+/L5/U5/WB/WL";
 
 static const struct stm32l4_rev stm32l47_l48xx_revs[] = {
 	{ 0x1000, "1" }, { 0x1001, "2" }, { 0x1003, "3" }, { 0x1007, "4" }
@@ -271,6 +277,15 @@ static const struct stm32l4_rev stm32l47_l48xx_revs[] = {
 
 static const struct stm32l4_rev stm32l43_l44xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x2001, "Y" },
+};
+
+
+static const struct stm32l4_rev stm32c01xx_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" },
+};
+
+static const struct stm32l4_rev stm32c03xx_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" },
 };
 
 static const struct stm32l4_rev stm32g05_g06xx_revs[] = {
@@ -289,7 +304,7 @@ static const struct stm32l4_rev stm32l45_l46xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x2001, "Y" },
 };
 
-static const struct stm32l4_rev stm32l41_L42xx_revs[] = {
+static const struct stm32l4_rev stm32l41_l42xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x2001, "Y" },
 };
 
@@ -311,6 +326,7 @@ static const struct stm32l4_rev stm32g47_g48xx_revs[] = {
 
 static const struct stm32l4_rev stm32l4r_l4sxx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x100F, "W" },
+	{ 0x101F, "V" },
 };
 
 static const struct stm32l4_rev stm32l4p_l4qxx_revs[] = {
@@ -318,7 +334,7 @@ static const struct stm32l4_rev stm32l4p_l4qxx_revs[] = {
 };
 
 static const struct stm32l4_rev stm32l55_l56xx_revs[] = {
-	{ 0x1000, "A" }, { 0x2000, "B" },
+	{ 0x1000, "A" }, { 0x2000, "B" }, { 0x2001, "Z" },
 };
 
 static const struct stm32l4_rev stm32g49_g4axx_revs[] = {
@@ -327,6 +343,7 @@ static const struct stm32l4_rev stm32g49_g4axx_revs[] = {
 
 static const struct stm32l4_rev stm32u57_u58xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x2000, "B" },
+	{ 0x2001, "X" }, { 0x3000, "C" },
 };
 
 static const struct stm32l4_rev stm32wb1xx_revs[] = {
@@ -367,6 +384,30 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x1FFF75E0,
+	  .otp_base              = 0x1FFF7000,
+	  .otp_size              = 1024,
+	},
+	{
+	  .id                    = DEVID_STM32C01XX,
+	  .revs                  = stm32c01xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32c01xx_revs),
+	  .device_str            = "STM32C01xx",
+	  .max_flash_size_kb     = 32,
+	  .flags                 = F_NONE,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x1FFF75A0,
+	  .otp_base              = 0x1FFF7000,
+	  .otp_size              = 1024,
+	},
+	{
+	  .id                    = DEVID_STM32C03XX,
+	  .revs                  = stm32c03xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32c03xx_revs),
+	  .device_str            = "STM32C03xx",
+	  .max_flash_size_kb     = 32,
+	  .flags                 = F_NONE,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x1FFF75A0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
 	},
@@ -420,8 +461,8 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	},
 	{
 	  .id                    = DEVID_STM32L41_L42XX,
-	  .revs                  = stm32l41_L42xx_revs,
-	  .num_revs              = ARRAY_SIZE(stm32l41_L42xx_revs),
+	  .revs                  = stm32l41_l42xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32l41_l42xx_revs),
 	  .device_str            = "STM32L41/L42xx",
 	  .max_flash_size_kb     = 128,
 	  .flags                 = F_NONE,
@@ -1740,7 +1781,8 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 	/* Set flash write alignment boundaries.
 	 * Ask the flash infrastructure to ensure required alignment */
-	bank->write_start_alignment = bank->write_end_alignment = stm32l4_info->data_width;
+	bank->write_start_alignment = stm32l4_info->data_width;
+	bank->write_end_alignment = stm32l4_info->data_width;
 
 	/* Initialize the flash registers layout */
 	if (part_info->flags & F_HAS_L5_FLASH_REGS)
@@ -1816,7 +1858,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 		flash_size_kb = stm32l4_info->user_bank_size / 1024;
 	}
 
-	LOG_INFO("flash size = %dkbytes", flash_size_kb);
+	LOG_INFO("flash size = %d KiB", flash_size_kb);
 
 	/* did we assign a flash size? */
 	assert((flash_size_kb != 0xffff) && flash_size_kb);
@@ -1853,6 +1895,8 @@ static int stm32l4_probe(struct flash_bank *bank)
 		}
 		break;
 	case DEVID_STM32L43_L44XX:
+	case DEVID_STM32C01XX:
+	case DEVID_STM32C03XX:
 	case DEVID_STM32G05_G06XX:
 	case DEVID_STM32G07_G08XX:
 	case DEVID_STM32L45_L46XX:

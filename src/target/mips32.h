@@ -16,7 +16,7 @@
 #include "target.h"
 #include "mips32_pracc.h"
 
-#define MIPS32_COMMON_MAGIC		0xB320B320
+#define MIPS32_COMMON_MAGIC		0xB320B320U
 
 /**
  * Memory segments (32bit kernel mode addresses)
@@ -82,7 +82,8 @@ struct mips32_comparator {
 };
 
 struct mips32_common {
-	uint32_t common_magic;
+	unsigned int common_magic;
+
 	void *arch_info;
 	struct reg_cache *core_cache;
 	struct mips_ejtag ejtag_info;
@@ -119,7 +120,7 @@ struct mips32_core_reg {
 };
 
 struct mips32_algorithm {
-	int common_magic;
+	unsigned int common_magic;
 	enum mips32_isa_mode isa_mode;
 };
 
@@ -399,7 +400,7 @@ int mips32_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		target_addr_t entry_point, target_addr_t exit_point,
-		int timeout_ms, void *arch_info);
+		unsigned int timeout_ms, void *arch_info);
 
 int mips32_configure_break_unit(struct target *target);
 

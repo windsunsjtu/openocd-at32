@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2017 by Tomas Vanek					   *
@@ -93,7 +93,7 @@
 #define SAMD_GET_DEVSEL(id) (id & 0xFF)
 
 /* Bits to mask user row */
-#define NVMUSERROW_SAM_E5_D5_MASK	((uint64_t)0x7FFF00FF3C007FFF)
+#define NVMUSERROW_SAM_E5_D5_MASK	0x7FFF00FF3C007FFFULL
 
 struct samd_part {
 	uint8_t id;
