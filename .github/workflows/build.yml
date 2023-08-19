@@ -39,8 +39,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: install deps
-        run: sudo apt-get update
-        run: sudo apt-get install git gcc make libtool pkg-config autoconf automake texinfo libusb-1.0-0-dev libftdi-dev libhidapi-dev libcapstone-dev libudev-dev
+        run: |
+            sudo apt-get update
+            sudo apt-get install git gcc make libtool pkg-config autoconf automake texinfo libusb-1.0-0-dev libftdi-dev libhidapi-dev libcapstone-dev libudev-dev
       - name: build
         env:
           MAKE_JOBS: 2
@@ -70,8 +71,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: install deps
-        run: sudo apt-get update
-        run: sudo apt-get install autotools-dev autoconf automake libtool pkg-config cmake texinfo texlive g++-mingw-w64-i686
+        run: |
+            sudo apt-get update
+            sudo apt-get install autotools-dev autoconf automake libtool pkg-config cmake texinfo texlive g++-mingw-w64-i686
       - name: Bootstrap
         run: ./bootstrap
       - name: Prepare libusb1
