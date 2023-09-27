@@ -142,7 +142,7 @@ static int at32x_get_product_id(struct flash_bank *bank, uint32_t *product_id);
 static int at32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t address, uint32_t count);
 static int at32x_get_project_id(struct flash_bank *bank, uint8_t *project_id);
-static inline void at32x_set_base_reg(struct flash_bank *bank, uint32_t bank_reg);
+// static inline void at32x_set_base_reg(struct flash_bank *bank, uint32_t bank_reg);
 
 static int at32x_get_project_id(struct flash_bank *bank, uint8_t *project_id)
 {
@@ -473,11 +473,11 @@ FLASH_BANK_COMMAND_HANDLER(at32x_flash_bank_command)
 	return ERROR_OK;
 }
 
-static inline void at32x_set_base_reg(struct flash_bank *bank, uint32_t bank_reg)
-{
-    struct at32_flash_info *at32x_info = bank->driver_priv;
-	at32x_info->cur_reg_base = bank_reg;
-}
+// static inline void at32x_set_base_reg(struct flash_bank *bank, uint32_t bank_reg)
+// {
+//     struct at32_flash_info *at32x_info = bank->driver_priv;
+// 	at32x_info->cur_reg_base = bank_reg;
+// }
 static inline int at32x_get_flash_reg(struct flash_bank *bank, uint32_t reg)
 {
    
