@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
-
 noinst_LTLIBRARIES += %D%/libocdflashnor.la
 %C%_libocdflashnor_la_SOURCES = \
 	%D%/core.c \
@@ -79,7 +77,8 @@ NOR_DRIVERS = \
 	%D%/xmc1xxx.c \
 	%D%/xmc4xxx.c \
 	%D%/at32f4xx.c \
-	%D%/at32xx.c
+	%D%/at32xx.c  \
+	%D%/at32qspi.c
 
 NORHEADERS = \
 	%D%/core.h \
@@ -95,4 +94,5 @@ NORHEADERS = \
 	%D%/spi.h \
 	%D%/stm32l4x.h \
 	%D%/stmqspi.h \
-	%D%/msp432.h
+	%D%/msp432.h \
+	%D%/at32qspi.h
