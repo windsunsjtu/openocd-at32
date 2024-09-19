@@ -133,7 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: install deps
-        run: sudo apt-get install git libtool pkg-config autoconf automake libudev-dev build-essential cmake
+        run: sudo apt update && sudo apt install -y git libtool pkg-config autoconf automake libudev-dev build-essential cmake
       - name: build
         env:
           MAKE_JOBS: 2
@@ -189,7 +189,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: install deps
-        run: sudo apt-get install git autoconf automake libtool-bin build-essential cmake libudev-dev pkg-config autotools-dev gcc-mingw-w64-i686
+        run: sudo apt update && sudo apt install -y git autoconf automake libtool-bin build-essential cmake libudev-dev pkg-config autotools-dev gcc-mingw-w64-i686
       - name: Bootstrap
         run: ./bootstrap
       - name: Prepare libusb1
@@ -251,7 +251,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: install deps
-        run: sudo apt-get install git autoconf automake libtool-bin build-essential cmake libudev-dev pkg-config autotools-dev gcc-mingw-w64-x86-64
+        run: sudo apt update && sudo apt install -y git autoconf automake libtool-bin build-essential cmake libudev-dev pkg-config autotools-dev gcc-mingw-w64-x86-64
       - name: Bootstrap
         run: ./bootstrap
       - name: Prepare libusb1
