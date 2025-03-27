@@ -59,7 +59,7 @@ jobs:
           echo "ARTIFACT_PATH=$PREFIX/openocd" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openocd-mac-applesilicon
           path: ${{ env.ARTIFACT_PATH }}/*
@@ -120,7 +120,7 @@ jobs:
           echo "ARTIFACT_PATH=$PREFIX/openocd" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openocd-mac-intel
           path: ${{ env.ARTIFACT_PATH }}/*
@@ -177,7 +177,7 @@ jobs:
           echo "ARTIFACT_PATH=$PREFIX/openocd" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openocd-linux
           path: ${{ env.ARTIFACT_PATH }}/*
@@ -239,7 +239,7 @@ jobs:
           echo "ARTIFACT_PATH=$PWD" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openocd-windows-x86
           path: ${{ env.ARTIFACT_PATH }}/*
@@ -301,7 +301,7 @@ jobs:
           echo "ARTIFACT_PATH=$PWD" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openocd-windows-x64
           path: ${{ env.ARTIFACT_PATH }}/*
@@ -343,7 +343,7 @@ jobs:
           cp -rv ../build/openocd-linux/share/openocd/scripts scripts
 
       - name: Upload xpack
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: xpack
           path: output/*
