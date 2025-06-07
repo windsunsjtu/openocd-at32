@@ -35,6 +35,7 @@ extern const struct flash_driver at32f435xx_flash;
 extern const struct flash_driver at32f437xx_flash;
 extern const struct flash_driver at32f423xx_flash;
 extern const struct flash_driver at32f4xx_flash;
+extern const struct flash_driver at32qspi_flash;
 
 
 /**
@@ -125,6 +126,7 @@ static const struct flash_driver * const flash_drivers[] = {
 	&at32f437xx_flash,
 	&at32f423xx_flash,
 	&at32f4xx_flash,
+	&at32qspi_flash,
 	&rsl10_flash,
 	NULL,
 };
